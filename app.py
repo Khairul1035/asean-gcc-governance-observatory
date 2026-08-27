@@ -225,6 +225,32 @@ with tab1:
         fig_line.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', yaxis_title="% of GDP")
         st.plotly_chart(fig_line, use_container_width=True)
 
+    # 4. Predictive Analytics & Trend Forecasting (2025–2030)
+    st.markdown("---")
+    st.subheader("🔮 Predictive Analytics & Trend Forecasting (2025–2030)")
+    st.caption("Linear Econometric Projection based on World Bank Baseline Data")
+
+    forecast_country = st.selectbox("Select Country for Horizon Projection:", df_filtered["Country"].unique())
+    df_c = df_filtered[df_filtered["Country"] == forecast_country].sort_values("Year")
+
+    if len(df_c) > 2:
+        x = df_c["Year"].values
+        y = df_c["Health_Exp_GDP"].values
+        slope, intercept = np.polyfit(x, y, 1)
+        
+        future_years = np.array(list(range(min(x), 2031)))
+        future_pred = slope * future_years + intercept
+        
+        df_pred = pd.DataFrame({"Year": future_years, "Projected_Health_Exp": np.round(future_pred, 2)})
+        
+        fig_pred = px.line(df_pred, x="Year", y="Projected_Health_Exp", title=f"Econometric Expenditure Forecast for {forecast_country} (Up to 2030)", template="plotly_white")
+        fig_pred.add_scatter(x=df_c["Year"], y=df_c["Health_Exp_GDP"], mode="markers+lines", name="Historical Actual")
+        fig_pred.update_traces(line=dict(dash='dash', color='#0284C7'), selector=dict(name="Projected_Health_Exp"))
+        fig_pred.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', yaxis_title="Health Exp (% of GDP)")
+        
+        st.plotly_chart(fig_pred, use_container_width=True)
+        st.info(f"💡 **Econometric Model Insight:** Average baseline structural growth trajectory for **{forecast_country}** is estimated at **{slope:+.2f}% of GDP per year**.")
+
 # ------------------------------------------
 # TAB 2: MACRO SHOCK & STRESS TESTING
 # ------------------------------------------
@@ -276,14 +302,12 @@ with tab3:
     st.subheader("🕸️ Multi-Dimensional Governance Radar")
     st.write("Cross-comparing regional clusters across Expenditure Depth, Volatility Shield, and Composite Ratings based on custom sidebar weights.")
 
-    # Calculate aggregated metrics per corridor
     df_radar = df_filtered.groupby("Region").agg({
         "Health_Exp_GDP": ["mean", "std", "max"]
     }).reset_index()
     df_radar.columns = ["Region", "Avg_Spend", "Volatility", "Peak_Spend"]
     df_radar["Volatility"] = df_radar["Volatility"].fillna(0.1)
     
-    # Normalize for Radar Chart (0-100 scale)
     categories = ['Expenditure Depth', 'Budget Stability', 'Peak Allocation', 'Resilience Factor']
     
     fig_radar = go.Figure()
